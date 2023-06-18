@@ -2,12 +2,23 @@ import base64
 from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Callable, Dict, List, Tuple, Type, TypeVar, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from dataclass_codec.types_predicates import (
     is_dataclass_predicate,
     is_enum_predicate,
 )
+
 
 ANYTYPE = Type[Any]
 
@@ -89,8 +100,13 @@ def dataclass_from_primitive_dict(
 
     return _type(
         **{
-            k: decode_it(v, _type.__dataclass_fields__[k].type)
-            for k, v in obj.items()
+            k: decode_it(
+                obj[k],
+                _type.__dataclass_fields__[k].type,
+            )
+            if k in obj
+            else None
+            for k in _type.__dataclass_fields__.keys()
         }
     )
 

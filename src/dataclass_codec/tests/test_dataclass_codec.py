@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, List, NewType, Optional
+from typing import Any, Dict, List, NewType, Optional, Union
 
 import pytest
 
@@ -295,3 +295,89 @@ class TestJsonDeserializerCodec:
             dummy: Dummy
 
         assert encode(Dummy2(Dummy(1))) == {"dummy": {"a": 1}}
+
+    def test_cu(self) -> None:
+        a = {
+            "id": 7,
+            "created_on": "2023-06-18 00:40:24",
+            "modified_on": "2023-06-18 00:40:24",
+            "owner_user_id": 1,
+            "domain_names": [
+                "brutus.example.com",
+                "casca.example.com",
+                "cassius.example.com",
+                "decius.example.com",
+                "metellus.example.com",
+            ],
+            "forward_host": "localhost",
+            "forward_port": 8080,
+            "access_list_id": 0,
+            "certificate_id": 0,
+            "ssl_forced": 0,
+            "caching_enabled": 0,
+            "block_exploits": 0,
+            "advanced_config": "",
+            "meta": {},
+            "allow_websocket_upgrade": 0,
+            "http2_support": 0,
+            "forward_scheme": "http",
+            "enabled": 1,
+            "locations": [],
+            "hsts_enabled": 0,
+            "hsts_subdomains": 0,
+            "certificate": None,
+            "owner": {
+                "id": 1,
+                "created_on": "2023-06-17 20:01:58",
+                "modified_on": "2023-06-17 20:01:58",
+                "is_deleted": 0,
+                "is_disabled": 0,
+                "email": "admin@example.com",
+                "name": "Administrator",
+                "nickname": "Admin",
+                "avatar": "",
+                "roles": ["admin"],
+            },
+            "access_list": None,
+            "use_default_location": True,
+            "ipv6": True,
+        }
+
+        @dataclass
+        class Location:
+            path: str
+            advanced_config: str
+            forward_scheme: str
+            forward_host: str
+            forward_port: str
+
+        @dataclass
+        class ProxyHostAddResponse:
+            id: int
+            created_on: str
+            modified_on: str
+            owner_user_id: int
+            domain_names: List[str]
+            forward_host: str
+            forward_port: int
+            access_list_id: int
+            certificate_id: int
+            ssl_forced: int
+            caching_enabled: int
+            block_exploits: int
+            advanced_config: str
+            meta: Dict[str, Union[bool, str, int]]
+            allow_websocket_upgrade: int
+            http2_support: int
+            forward_scheme: str
+            enabled: int
+            locations: List[Location]
+            hsts_enabled: int
+            hsts_subdomains: int
+            # certificate: Optional[Certificate]
+            # owner: User
+            # access_list: AccessList
+            use_default_location: bool
+            ipv6: bool
+
+        decode(a, ProxyHostAddResponse)
