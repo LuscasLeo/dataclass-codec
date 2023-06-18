@@ -7,7 +7,13 @@ from typing import Any, Dict, List, NewType, Optional, Union
 
 import pytest
 
-from dataclass_codec import encode, decode
+from dataclass_codec import (
+    encode,
+    decode,
+    decode_context_scope,
+    DecodeContext,
+    error_list_scope,
+)
 
 
 def optional(cls: Any) -> Any:
@@ -296,7 +302,7 @@ class TestJsonDeserializerCodec:
 
         assert encode(Dummy2(Dummy(1))) == {"dummy": {"a": 1}}
 
-    def test_cu(self) -> None:
+    def test_complex_case(self) -> None:
         a = {
             "id": 7,
             "created_on": "2023-06-18 00:40:24",
@@ -381,3 +387,60 @@ class TestJsonDeserializerCodec:
             ipv6: bool
 
         decode(a, ProxyHostAddResponse)
+
+    def test_decode_dataclass_with_optional(self) -> None:
+        @dataclass
+        class Dummy:
+            a: Optional[int]
+
+        assert decode({"a": 1}, Dummy) == Dummy(1)
+        assert decode({}, Dummy) == Dummy(None)
+
+    def test_raises_on_decode_dataclass_with_required(self) -> None:
+        @dataclass
+        class Dummy:
+            a: int
+
+        with pytest.raises(ValueError):
+            with decode_context_scope(
+                DecodeContext(
+                    dataclass_unset_as_none=False,
+                )
+            ):
+                decode({}, Dummy)
+
+    def test_decode_collect_errors(self) -> None:
+        @dataclass
+        class Dummy:
+            a: int
+
+        with error_list_scope() as errors, decode_context_scope(
+            DecodeContext(
+                collect_errors=True,
+                dataclass_unset_as_none=False,
+            )
+        ):
+            decode({}, Dummy)
+
+            assert len(errors) == 1
+            assert errors[0][0] == "$.a"
+
+    def test_decode_collect_errors_with_complex_case(self) -> None:
+        @dataclass
+        class Dummy:
+            a: int
+
+        @dataclass
+        class Dummy2:
+            dummy: Dummy
+
+        with error_list_scope() as errors, decode_context_scope(
+            DecodeContext(
+                collect_errors=True,
+                dataclass_unset_as_none=False,
+            )
+        ):
+            decode({"dummy": {}}, Dummy2)
+
+            assert len(errors) == 1
+            assert errors[0][0] == "$.dummy.a"
