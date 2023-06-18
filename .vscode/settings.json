@@ -1,0 +1,27 @@
+{
+    "python.testing.pytestArgs": [
+        "src"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.formatting.provider": "black",
+    "python.linting.mypyEnabled": true,
+    "python.linting.enabled": true,
+    "task.allowAutomaticTasks": "on",
+    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.fixAll": [
+        "source.convertImportFormat",
+        "source.unusedImports"
+    ],
+    "python.linting.mypyArgs": [
+        "--config-file",
+        "pyproject.toml"
+    ],
+    "python.formatting.blackArgs": [
+        "--config",
+        "pyproject.toml"
+    ],
+    "python.analysis.extraPaths": [
+        "./src"
+    ]
+}
