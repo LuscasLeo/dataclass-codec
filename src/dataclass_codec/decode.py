@@ -132,7 +132,19 @@ def primitive_hook(_type: ANYTYPE) -> TYPEDECODER:
     ) -> Any:
         ctx = decode_context()
 
-        if ctx.primitive_cast_values:
+        def type_can_cast(_type: ANYTYPE) -> bool:
+            return _type in (
+                str,
+                int,
+                float,
+                Decimal,
+                bool,
+                date,
+                datetime,
+                time,
+            )
+
+        if ctx.primitive_cast_values and type_can_cast(_type):
             return _type(obj)
 
         if ctx.strict and _type(obj) != obj:
