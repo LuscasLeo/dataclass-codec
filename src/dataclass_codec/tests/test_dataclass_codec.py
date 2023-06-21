@@ -538,3 +538,50 @@ class TestJsonDeserializerCodec:
         )
 
         decode(json_data, ProxyHostAddResponse)
+
+    def test_encode_uuid(self) -> None:
+        import uuid
+
+        assert (
+            encode(uuid.UUID("12345678-1234-5678-1234-567812345678"))
+            == "12345678-1234-5678-1234-567812345678"
+        )
+
+    def test_decode_uuid(self) -> None:
+        import uuid
+
+        @dataclass
+        class Dummy:
+            uuid_: uuid.UUID
+
+        assert decode(
+            {"uuid_": "12345678-1234-5678-1234-567812345678"}, Dummy
+        ) == Dummy(uuid.UUID("12345678-1234-5678-1234-567812345678"))
+
+    def test_decode_uuid_with_invalid_value(self) -> None:
+        import uuid
+
+        @dataclass
+        class Dummy:
+            uuid_: uuid.UUID
+
+        with pytest.raises(ValueError):
+            decode({"uuid_": "hello"}, Dummy)
+
+    def test_decode_uuid_without_dash(self) -> None:
+        import uuid
+
+        @dataclass
+        class Dummy:
+            uuid_: uuid.UUID
+
+        assert decode(
+            {"uuid_": "12345678123456781234567812345678"}, Dummy
+        ) == Dummy(uuid.UUID("12345678-1234-5678-1234-567812345678"))
+
+    def test_decode_raw_uuid(self) -> None:
+        import uuid
+
+        assert decode(
+            "12345678-1234-5678-1234-567812345678", uuid.UUID
+        ) == uuid.UUID("12345678-1234-5678-1234-567812345678")

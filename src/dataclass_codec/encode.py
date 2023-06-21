@@ -4,6 +4,8 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any, Callable, Dict, Type, Tuple, List
 
+from uuid import UUID
+
 from dataclass_codec.types_predicates import (
     is_dataclass_predicate,
     is_enum_predicate,
@@ -83,6 +85,11 @@ def decimal_to_str(obj: Any, _encode_it: ENCODEIT) -> Any:
     return str(obj)
 
 
+def uuid_to_str(obj: Any, _encode_it: ENCODEIT) -> Any:
+    assert isinstance(obj, UUID), f"Expected UUID, got {type(obj)}"
+    return str(obj)
+
+
 def encode(obj: Any) -> Any:
     return raw_encode(
         obj,
@@ -97,6 +104,7 @@ def encode(obj: Any) -> Any:
             date: datetime_to_iso,
             time: datetime_to_iso,
             Decimal: decimal_to_str,
+            UUID: uuid_to_str,
         },
         [
             (is_dataclass_predicate, dataclass_to_primitive_dict),

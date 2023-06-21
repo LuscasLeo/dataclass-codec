@@ -18,6 +18,7 @@ from typing import (
     Union,
     cast,
 )
+from uuid import UUID
 
 from dataclass_codec.types_predicates import (
     is_dataclass_predicate,
@@ -234,6 +235,11 @@ def decimal_from_str(obj: Any, _type: ANYTYPE, _decode_it: DECODEIT) -> Any:
     ), "{} is {} not str, int or float".format(current_path(), type(obj))
     return Decimal(obj)
 
+def uuid_from_str(obj: Any, _type: ANYTYPE, _decode_it: DECODEIT) -> Any:
+    assert isinstance(
+        obj, str
+    ), "{} is {} not str".format(current_path(), type(obj))
+    return UUID(obj)
 
 def is_generic_list_predicate(_type: ANYTYPE) -> bool:
     return hasattr(_type, "__origin__") and _type.__origin__ is list
@@ -355,6 +361,7 @@ DEFAULT_DECODERS: Dict[ANYTYPE, TYPEDECODER] = {
     date: iso_date_to_date,
     time: iso_time_to_time,
     Decimal: decimal_from_str,
+    UUID: uuid_from_str,
 }
 
 DEFAULT_DECODERS_BY_PREDICATE: List[Tuple[TYPEMATCHPREDICATE, TYPEDECODER]] = [
