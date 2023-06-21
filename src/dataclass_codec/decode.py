@@ -160,7 +160,9 @@ def list_hook(obj: Any, _type: ANYTYPE, decode_it: DECODEIT) -> Any:
 
 
 def dict_hook(obj: Any, _type: ANYTYPE, decode_it: DECODEIT) -> Any:
-    assert isinstance(obj, dict)
+    assert isinstance(obj, dict), "{} is {} not dict".format(
+        current_path(), type(obj)
+    )
 
     def make_value(k: str) -> Any:
         with current_path_scope(current_path() + "." + k):
@@ -170,24 +172,32 @@ def dict_hook(obj: Any, _type: ANYTYPE, decode_it: DECODEIT) -> Any:
 
 
 def base64_to_bytes(obj: Any, _type: ANYTYPE, _decode_it: DECODEIT) -> Any:
-    assert isinstance(obj, str)
+    assert isinstance(obj, str), "{} is {} not str".format(
+        current_path(), type(obj)
+    )
     return base64.b64decode(obj)
 
 
 def iso_datetime_to_datetime(
     obj: Any, _type: ANYTYPE, _decode_it: DECODEIT
 ) -> Any:
-    assert isinstance(obj, str)
+    assert isinstance(obj, str), "{} is {} not str".format(
+        current_path(), type(obj)
+    )
     return datetime.fromisoformat(obj)
 
 
 def iso_date_to_date(obj: Any, _type: ANYTYPE, _decode_it: DECODEIT) -> Any:
-    assert isinstance(obj, str)
+    assert isinstance(obj, str), "{} is {} not str".format(
+        current_path(), type(obj)
+    )
     return datetime.fromisoformat(obj).date()
 
 
 def iso_time_to_time(obj: Any, _type: ANYTYPE, _decode_it: DECODEIT) -> Any:
-    assert isinstance(obj, str)
+    assert isinstance(obj, str), "{} is {} not str".format(
+        current_path(), type(obj)
+    )
     return time.fromisoformat(obj)
 
 
@@ -195,8 +205,13 @@ def dataclass_from_primitive_dict(
     obj: Any, _type: ANYTYPE, decode_it: DECODEIT
 ) -> Any:
     cxt = decode_context()
-    assert is_dataclass_predicate(_type)
-    assert isinstance(obj, dict)
+    assert is_dataclass_predicate(_type), "{} is not a dataclass".format(
+        _type.__name__
+    )
+
+    assert isinstance(obj, dict), "{} is {} not dict".format(
+        current_path(), type(obj)
+    )
 
     def make_value(k: str) -> Any:
         with current_path_scope(current_path() + "." + k):
@@ -214,7 +229,9 @@ def dataclass_from_primitive_dict(
 
 
 def decimal_from_str(obj: Any, _type: ANYTYPE, _decode_it: DECODEIT) -> Any:
-    assert isinstance(obj, (str, int, float))
+    assert isinstance(
+        obj, (str, int, float)
+    ), "{} is {} not str, int or float".format(current_path(), type(obj))
     return Decimal(obj)
 
 
@@ -223,8 +240,13 @@ def is_generic_list_predicate(_type: ANYTYPE) -> bool:
 
 
 def generic_list_decoder(obj: Any, _type: ANYTYPE, decode_it: DECODEIT) -> Any:
-    assert is_generic_list_predicate(_type)
-    assert isinstance(obj, list)
+    assert is_generic_list_predicate(_type), "{} is not a list".format(
+        _type.__name__
+    )
+
+    assert isinstance(obj, list), "{} is {} not list".format(
+        current_path(), type(obj)
+    )
 
     def make_value(i: int) -> Any:
         with current_path_scope(current_path() + f"[{i}]"):
@@ -238,8 +260,12 @@ def is_generic_dict_predicate(_type: ANYTYPE) -> bool:
 
 
 def generic_dict_decoder(obj: Any, _type: ANYTYPE, decode_it: DECODEIT) -> Any:
-    assert is_generic_dict_predicate(_type)
-    assert isinstance(obj, dict)
+    assert is_generic_dict_predicate(_type), "{} is not a dict".format(
+        _type.__name__
+    )
+    assert isinstance(obj, dict), "{} is {} not dict".format(
+        current_path(), type(obj)
+    )
 
     def make_value(k: str) -> Any:
         with current_path_scope(current_path() + "." + k):
@@ -255,7 +281,9 @@ def is_union_predicate(_type: ANYTYPE) -> bool:
 def generic_union_decoder(
     obj: Any, _type: ANYTYPE, decode_it: DECODEIT
 ) -> Any:
-    assert is_union_predicate(_type)
+    assert is_union_predicate(_type), "{} is not a union".format(
+        _type.__name__
+    )
 
     obj_type = type(obj)
     allowed_types = _type.__args__
@@ -267,8 +295,10 @@ def generic_union_decoder(
 
 
 def enum_decoder(obj: Any, _type: ANYTYPE, decode_it: DECODEIT) -> Any:
-    assert issubclass(_type, Enum)
-    assert isinstance(obj, str)
+    assert issubclass(_type, Enum), "{} is not an enum".format(_type.__name__)
+    assert isinstance(obj, str), "{} is {} not str".format(
+        current_path(), type(obj)
+    )
 
     return _type[obj]
 
@@ -280,7 +310,9 @@ def inherits_some_class_predicate(_type: ANYTYPE) -> bool:
 def generic_inheritance_decoder(
     obj: Any, _type: ANYTYPE, decode_it: DECODEIT
 ) -> Any:
-    assert inherits_some_class_predicate(_type)
+    assert inherits_some_class_predicate(_type), "{} is not a class".format(
+        _type.__name__
+    )
 
     parent_types = _type.__bases__
     first_parent_type = parent_types[0]
@@ -295,7 +327,9 @@ def is_new_type_predicate(_type: ANYTYPE) -> bool:
 def generic_new_type_decoder(
     obj: Any, _type: ANYTYPE, decode_it: DECODEIT
 ) -> Any:
-    assert is_new_type_predicate(_type)
+    assert is_new_type_predicate(_type), "{} is not a new type".format(
+        _type.__name__
+    )
 
     type(obj)
     supertype = _type.__supertype__
