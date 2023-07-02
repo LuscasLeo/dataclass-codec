@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dataclass-codec"
-version = "0.1.6"
+version = "0.1.7"
 description = ""
 authors = ["lucas.silva <lucas.silva@jeaholding.com.br>"]
 readme = "README.md"
