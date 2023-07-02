@@ -23,6 +23,7 @@ from uuid import UUID
 from dataclass_codec.types_predicates import (
     is_dataclass_predicate,
     is_enum_predicate,
+    is_generic_dataclass_predicate,
 )
 
 
@@ -229,6 +230,32 @@ def dataclass_from_primitive_dict(
     )
 
 
+def generic_dataclass_from_primitive_dict(
+    obj: Any, _type: ANYTYPE, decode_it: DECODEIT
+) -> Any:
+    cxt = decode_context()
+    assert is_generic_dataclass_predicate(_type), "{} is not a dataclass".format(
+        _type.__name__
+    )
+
+    assert isinstance(obj, dict), "{} is {} not dict".format(
+        current_path(), type(obj)
+    )
+
+    def make_value(k: str) -> Any:
+        with current_path_scope(current_path() + "." + k):
+            if k not in obj:
+                if cxt.dataclass_unset_as_none:
+                    return None
+                else:
+                    raise ValueError(f"Missing key {k}")
+
+            return decode_it(obj[k], _type.__args__[0])
+
+    return _type(
+        **{k: make_value(k) for k in _type.__origin__.__dataclass_fields__.keys()}
+    )
+
 def decimal_from_str(obj: Any, _type: ANYTYPE, _decode_it: DECODEIT) -> Any:
     assert isinstance(
         obj, (str, int, float)
@@ -366,6 +393,7 @@ DEFAULT_DECODERS: Dict[ANYTYPE, TYPEDECODER] = {
 
 DEFAULT_DECODERS_BY_PREDICATE: List[Tuple[TYPEMATCHPREDICATE, TYPEDECODER]] = [
     (is_dataclass_predicate, dataclass_from_primitive_dict),
+    (is_generic_dataclass_predicate, generic_dataclass_from_primitive_dict),
     (is_generic_list_predicate, generic_list_decoder),
     (is_generic_dict_predicate, generic_dict_decoder),
     (is_union_predicate, generic_union_decoder),

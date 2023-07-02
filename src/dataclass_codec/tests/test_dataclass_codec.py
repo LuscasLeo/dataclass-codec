@@ -4,7 +4,7 @@ from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from enum import Enum
 import json
-from typing import Any, Dict, List, NewType, Optional, Union
+from typing import Any, Dict, Generic, List, NewType, Optional, TypeVar, Union
 
 import pytest
 
@@ -585,3 +585,13 @@ class TestJsonDeserializerCodec:
         assert decode(
             "12345678-1234-5678-1234-567812345678", uuid.UUID
         ) == uuid.UUID("12345678-1234-5678-1234-567812345678")
+
+
+    def test_generic_dataclass(self) -> None:
+        T = TypeVar("T"	)
+        
+        @dataclass
+        class GenericDummy(Generic[T]):
+            a: T
+
+        assert decode({"a": 1}, GenericDummy[int]) == GenericDummy(1)
