@@ -586,12 +586,19 @@ class TestJsonDeserializerCodec:
             "12345678-1234-5678-1234-567812345678", uuid.UUID
         ) == uuid.UUID("12345678-1234-5678-1234-567812345678")
 
-
     def test_generic_dataclass(self) -> None:
-        T = TypeVar("T"	)
-        
+        T = TypeVar("T")
+
         @dataclass
         class GenericDummy(Generic[T]):
             a: T
 
         assert decode({"a": 1}, GenericDummy[int]) == GenericDummy(1)
+
+    def test_any_type(self) -> None:
+        @dataclass
+        class Dummy:
+            a: Any
+
+        assert decode({"a": 1}, Dummy) == Dummy(1)
+        assert decode({"a": "hello"}, Dummy) == Dummy("hello")

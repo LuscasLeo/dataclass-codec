@@ -234,9 +234,9 @@ def generic_dataclass_from_primitive_dict(
     obj: Any, _type: ANYTYPE, decode_it: DECODEIT
 ) -> Any:
     cxt = decode_context()
-    assert is_generic_dataclass_predicate(_type), "{} is not a dataclass".format(
-        _type.__name__
-    )
+    assert is_generic_dataclass_predicate(
+        _type
+    ), "{} is not a dataclass".format(_type.__name__)
 
     assert isinstance(obj, dict), "{} is {} not dict".format(
         current_path(), type(obj)
@@ -253,8 +253,12 @@ def generic_dataclass_from_primitive_dict(
             return decode_it(obj[k], _type.__args__[0])
 
     return _type(
-        **{k: make_value(k) for k in _type.__origin__.__dataclass_fields__.keys()}
+        **{
+            k: make_value(k)
+            for k in _type.__origin__.__dataclass_fields__.keys()
+        }
     )
+
 
 def decimal_from_str(obj: Any, _type: ANYTYPE, _decode_it: DECODEIT) -> Any:
     assert isinstance(
@@ -262,11 +266,13 @@ def decimal_from_str(obj: Any, _type: ANYTYPE, _decode_it: DECODEIT) -> Any:
     ), "{} is {} not str, int or float".format(current_path(), type(obj))
     return Decimal(obj)
 
+
 def uuid_from_str(obj: Any, _type: ANYTYPE, _decode_it: DECODEIT) -> Any:
-    assert isinstance(
-        obj, str
-    ), "{} is {} not str".format(current_path(), type(obj))
+    assert isinstance(obj, str), "{} is {} not str".format(
+        current_path(), type(obj)
+    )
     return UUID(obj)
+
 
 def is_generic_list_predicate(_type: ANYTYPE) -> bool:
     return hasattr(_type, "__origin__") and _type.__origin__ is list
@@ -370,6 +376,14 @@ def generic_new_type_decoder(
     return _type(decode_it(obj, supertype))
 
 
+def is_any_type_predicate(_type: ANYTYPE) -> bool:
+    return _type is Any
+
+
+def any_type_decoder(obj: Any, _type: ANYTYPE, decode_it: DECODEIT) -> Any:
+    return obj
+
+
 DEFAULT_DECODERS: Dict[ANYTYPE, TYPEDECODER] = {
     **{
         t: primitive_hook(t)
@@ -392,6 +406,7 @@ DEFAULT_DECODERS: Dict[ANYTYPE, TYPEDECODER] = {
 }
 
 DEFAULT_DECODERS_BY_PREDICATE: List[Tuple[TYPEMATCHPREDICATE, TYPEDECODER]] = [
+    (is_any_type_predicate, any_type_decoder),
     (is_dataclass_predicate, dataclass_from_primitive_dict),
     (is_generic_dataclass_predicate, generic_dataclass_from_primitive_dict),
     (is_generic_list_predicate, generic_list_decoder),
