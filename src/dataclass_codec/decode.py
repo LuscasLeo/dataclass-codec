@@ -1,7 +1,7 @@
 import base64
 from contextlib import contextmanager
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import MISSING, Field, dataclass
 from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
@@ -217,8 +217,13 @@ def dataclass_from_primitive_dict(
 
     def make_value(k: str) -> Any:
         with current_path_scope(current_path() + "." + k):
+            field: "Field[Any]" = _type.__dataclass_fields__[k]
             if k not in obj:
-                if cxt.dataclass_unset_as_none:
+                if callable(field.default_factory):
+                    return field.default_factory()
+                elif field.default is not MISSING:
+                    return field.default
+                elif cxt.dataclass_unset_as_none:
                     return None
                 else:
                     raise ValueError(f"Missing key {k}")

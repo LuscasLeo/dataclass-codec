@@ -1,5 +1,5 @@
 import base64
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from enum import Enum
@@ -602,3 +602,17 @@ class TestJsonDeserializerCodec:
 
         assert decode({"a": 1}, Dummy) == Dummy(1)
         assert decode({"a": "hello"}, Dummy) == Dummy("hello")
+
+    def test_default_value(self) -> None:
+        @dataclass
+        class Dummy:
+            a: int = 1
+
+        assert decode({}, Dummy) == Dummy(1)
+
+    def test_default_factory(self) -> None:
+        @dataclass
+        class Dummy:
+            a: List[int] = field(default_factory=list)
+
+        assert decode({}, Dummy) == Dummy([])
