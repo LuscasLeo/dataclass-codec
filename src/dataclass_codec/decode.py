@@ -5,11 +5,14 @@ from dataclasses import MISSING, Field, dataclass
 from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
+from operator import indexOf
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
     Generator,
+    Generic,
     List,
     Optional,
     Tuple,
@@ -17,6 +20,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    get_args,
 )
 from uuid import UUID
 
@@ -25,6 +29,9 @@ from dataclass_codec.types_predicates import (
     is_enum_predicate,
     is_generic_dataclass_predicate,
 )
+
+if TYPE_CHECKING:
+    pass
 
 
 ANYTYPE = Type[Any]
@@ -109,6 +116,66 @@ def current_path_scope(path: str) -> Generator[None, Any, None]:
         current_path_cxt_var.reset(token)
 
 
+TYPES_PATH = Tuple[Type[Any], ...]
+
+types_path_cxt_var = ContextVar[TYPES_PATH]("types_path_cxt_var", default=())
+
+
+@contextmanager
+def types_path_scope(
+    types_path: TYPES_PATH,
+) -> Generator[None, Any, None]:
+    token = types_path_cxt_var.set(types_path)
+    try:
+        yield
+    finally:
+        types_path_cxt_var.reset(token)
+
+
+def current_types_path() -> TYPES_PATH:
+    return types_path_cxt_var.get()
+
+
+def discover_typevar(_type: Type[Any]) -> Any:
+    if len(current_types_path()) == 0:
+        raise TypeError(f"Cannot decode {_type}")
+
+    typevar_context = [*current_types_path()][::-1]
+
+    types_path: Tuple[Type[Any], ...] = ()
+    index = -1
+    for t in typevar_context:
+        base_t = t
+        types_path = types_path + (base_t,)
+        while hasattr(base_t, "__origin__") or hasattr(
+            base_t, "__orig_bases__"
+        ):
+            if hasattr(base_t, "__origin__"):
+                if hasattr(base_t.__origin__, "__orig_bases__"):
+                    if hasattr(
+                        base_t.__origin__.__orig_bases__[0], "__origin__"
+                    ):
+                        if (
+                            base_t.__origin__.__orig_bases__[0].__origin__
+                            is Generic
+                        ):
+                            index = indexOf(
+                                base_t.__origin__.__orig_bases__[0].__args__,
+                                _type,
+                            )
+                            if index != -1:
+                                break
+
+                base_t = base_t.__origin__
+            else:
+                base_t = base_t.__orig_bases__[0]
+
+    if index == -1:
+        raise TypeError(f"Typevar {_type} not found in {types_path}")
+    corresponding_type = base_t.__args__[index]
+    return corresponding_type
+
+
 def raw_decode(
     obj: Any,
     obj_type: Type[T],
@@ -116,14 +183,20 @@ def raw_decode(
     decoders_by_predicate: List[Tuple[TYPEMATCHPREDICATE, TYPEDECODER]],
 ) -> T:
     def decode_it(obj: Any, _type: ANYTYPE) -> Any:
+        if isinstance(_type, TypeVar):
+            _type = discover_typevar(_type)
         return raw_decode(obj, _type, decoders, decoders_by_predicate)
+
+    if isinstance(obj_type, TypeVar):
+        obj_type.__bound__
 
     if obj_type in decoders:
         return cast(T, decoders[obj_type](obj, obj_type, decode_it))
 
     for predicate, decoder in decoders_by_predicate:
         if predicate(obj_type):
-            return cast(T, decoder(obj, obj_type, decode_it))
+            with types_path_scope(current_types_path() + (obj_type,)):
+                return cast(T, decoder(obj, obj_type, decode_it))
 
     raise TypeError(f"Cannot decode {obj_type}")
 
@@ -247,7 +320,7 @@ def generic_dataclass_from_primitive_dict(
         current_path(), type(obj)
     )
 
-    def make_value(k: str) -> Any:
+    def make_value(k: str, t: Type[Any]) -> Any:
         with current_path_scope(current_path() + "." + k):
             if k not in obj:
                 if cxt.dataclass_unset_as_none:
@@ -255,12 +328,20 @@ def generic_dataclass_from_primitive_dict(
                 else:
                     raise ValueError(f"Missing key {k}")
 
-            return decode_it(obj[k], _type.__args__[0])
+            if isinstance(t, TypeVar):
+                generic_args: Tuple[Any, ...] = get_args(
+                    _type.__origin__.__orig_bases__[0]
+                )
+                index = indexOf(generic_args, t)
+                if index == -1:
+                    raise TypeError(f"Typevar {t} not found in {generic_args}")
+                t = _type.__args__[index]
+            return decode_it(obj[k], t)
 
     return _type(
         **{
-            k: make_value(k)
-            for k in _type.__origin__.__dataclass_fields__.keys()
+            k: make_value(k, t.type)
+            for k, t in _type.__origin__.__dataclass_fields__.items()
         }
     )
 
@@ -425,9 +506,46 @@ DEFAULT_DECODERS_BY_PREDICATE: List[Tuple[TYPEMATCHPREDICATE, TYPEDECODER]] = [
 ]
 
 
+TYPEVAR_MAP = Dict[TypeVar, Type[Any]]
+
+typevar_context_cxt_var = ContextVar[TYPEVAR_MAP](
+    "typevar_context_cxt_var", default={}
+)
+
+
+@contextmanager
+def typevar_context_scope(
+    typevar_context: TYPEVAR_MAP,
+) -> Generator[None, Any, None]:
+    token = typevar_context_cxt_var.set(typevar_context)
+    try:
+        yield
+    finally:
+        typevar_context_cxt_var.reset(token)
+
+
+def get_root_generic_type(_type: Type[Any]) -> Optional[Type[Any]]:
+    if hasattr(_type, "__origin__"):
+        if _type.__origin__ is Generic:
+            return _type
+        return get_root_generic_type(_type.__origin__)
+    elif hasattr(_type, "__orig_bases__"):
+        if len(_type.__orig_bases__) == 0:
+            return _type
+        if len(_type.__orig_bases__) > 1:
+            raise TypeError(f"Cannot decode {type(_type)} with multiple bases")
+        if _type.__orig_bases__[0] is Generic:
+            return _type
+
+        return get_root_generic_type(_type.__orig_bases__[0])
+    else:
+        return None
+
+
 def decode(obj: Any, _type: Type[T]) -> T:
     if _type is None:
         _type = type(obj)
+
     with current_path_scope("$"):
         return raw_decode(
             obj, _type, DEFAULT_DECODERS, DEFAULT_DECODERS_BY_PREDICATE

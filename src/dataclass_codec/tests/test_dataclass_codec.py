@@ -616,3 +616,142 @@ class TestJsonDeserializerCodec:
             a: List[int] = field(default_factory=list)
 
         assert decode({}, Dummy) == Dummy([])
+
+    def test_generic_dataclass_pagination(self) -> None:
+        T = TypeVar("T")
+
+        @dataclass
+        class PaginationData:
+            count: int
+            current: int
+
+        @dataclass
+        class Pagination(Generic[T]):
+            data: List[T]
+            pagination: PaginationData
+
+        @dataclass
+        class Dummy:
+            a: str
+
+        class DummyPagination(Pagination[Dummy]):
+            pass
+
+        dict_dummy_pagination = {
+            "data": [{"a": "hello"}],
+            "pagination": {"count": 1, "current": 1},
+        }
+
+        assert decode(
+            dict_dummy_pagination, DummyPagination
+        ) == DummyPagination(
+            data=[Dummy(a="hello")],
+            pagination=PaginationData(count=1, current=1),
+        )
+
+        DummyPagination2 = Pagination[Dummy]
+
+        assert decode(
+            dict_dummy_pagination, DummyPagination2
+        ) == DummyPagination2(
+            data=[Dummy(a="hello")],
+            pagination=PaginationData(count=1, current=1),
+        )
+
+    def test_double_generic_dataclass(self) -> None:
+        T = TypeVar("T")
+        U = TypeVar("U")
+
+        @dataclass
+        class Dummy(Generic[T, U]):
+            a: T
+            b: U
+
+        assert decode({"a": 1, "b": "hello"}, Dummy[int, str]) == Dummy(
+            a=1, b="hello"
+        )
+
+    def test_complex_double_generic_class(self) -> None:
+        T = TypeVar("T")
+        U = TypeVar("U")
+
+        @dataclass
+        class PaginationData:
+            count: int
+            current: int
+
+        @dataclass
+        class Pagination(Generic[T]):
+            data: List[T]
+            pagination: PaginationData
+
+        @dataclass
+        class Dummy(Generic[T, U]):
+            a: T
+            b: U
+
+        class DummyPagination(Pagination[Dummy[int, str]]):
+            pass
+
+        dict_dummy_pagination = {
+            "data": [{"a": 1, "b": "hello"}],
+            "pagination": {"count": 1, "current": 1},
+        }
+
+        assert decode(
+            dict_dummy_pagination, DummyPagination
+        ) == DummyPagination(
+            data=[Dummy(a=1, b="hello")],
+            pagination=PaginationData(count=1, current=1),
+        )
+
+    def test_triple_generic_dataclass(self) -> None:
+        T = TypeVar("T")
+        U = TypeVar("U")
+        V = TypeVar("V")
+
+        @dataclass
+        class Dummy(Generic[T, U, V]):
+            a: T
+            b: U
+            c: V
+
+        assert decode(
+            {"a": 1, "b": "hello", "c": 1.1}, Dummy[int, str, float]
+        ) == Dummy(a=1, b="hello", c=1.1)
+
+    def test_complex_triple_generic_class(self) -> None:
+        T = TypeVar("T")
+        U = TypeVar("U")
+        V = TypeVar("V")
+
+        @dataclass
+        class PaginationData:
+            count: int
+            current: int
+
+        @dataclass
+        class Pagination(Generic[T]):
+            data: List[T]
+            pagination: PaginationData
+
+        @dataclass
+        class Dummy(Generic[T, U, V]):
+            a: T
+            b: U
+            c: V
+
+        class DummyPagination(Pagination[Dummy[int, str, float]]):
+            pass
+
+        dict_dummy_pagination = {
+            "data": [{"a": 1, "b": "hello", "c": 1.1}],
+            "pagination": {"count": 1, "current": 1},
+        }
+
+        assert decode(
+            dict_dummy_pagination, DummyPagination
+        ) == DummyPagination(
+            data=[Dummy(a=1, b="hello", c=1.1)],
+            pagination=PaginationData(count=1, current=1),
+        )
