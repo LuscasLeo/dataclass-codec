@@ -126,6 +126,52 @@ In this example, we showcase how to decode a dictionary containing a list of gen
 
 Feel free to include this example in your readme to demonstrate how to decode a dictionary with a generic list into a corresponding dataclass object.
 
+## Decode Context and Context Scope (ID: `decode-context`)
+
+The `dataclass_codec` library provides a `DecodeContext` class and a context-based approach to manage the decoding behavior using the `decode_context_scope` context manager.
+
+### DecodeContext
+
+```python
+@dataclass
+class DecodeContext:
+    strict: bool = False
+    primitive_cast_values: bool = True
+    dataclass_unset_as_none: bool = True
+    collect_errors: bool = False
+```
+
+The `DecodeContext` class represents the decoding context with the following configurable options:
+
+- `strict` (bool): If set to `True`, the decoder raises an exception when encountering unknown fields. Defaults to `False`.
+- `primitive_cast_values` (bool): If set to `True`, the decoder attempts to cast values to their declared types. Defaults to `True`.
+- `dataclass_unset_as_none` (bool): If set to `True`, the decoder treats unset fields in dataclasses as `None`. Defaults to `True`.
+- `collect_errors` (bool): If set to `True`, the decoder collects decoding errors as a list of `(error_path, error)` tuples. Defaults to `False`.
+
+### decode_context_scope
+
+```python
+@contextmanager
+def decode_context_scope(
+    decode_context: DecodeContext,
+) -> Generator[None, Any, None]:
+    # Code for the context manager
+```
+
+The `decode_context_scope` is a context manager that allows you to temporarily set a specific `DecodeContext` within a context block. This context manager ensures that the desired decoding behavior is applied within the block and reverts to the previous context afterward.
+
+Usage:
+
+```python
+with decode_context_scope(DecodeContext(strict=True, primitive_cast_values=False)):
+    # Perform decoding operations within this block
+    # The specified decoding context will be in effect
+```
+
+By using the `decode_context_scope` context manager, you can easily control the decoding behavior within a specific scope, allowing you to customize options such as strict decoding, casting values, handling unset fields, and collecting errors.
+
+Feel free to include this section in your readme to explain the usage of `DecodeContext` and `decode_context_scope` for managing the decoding behavior within different contexts.
+
 ## Conclusion
 
 dataclass_codec is a powerful library for decoding dictionaries into dataclasses in Python. It provides an easy and efficient way to convert data between Python objects and JSON-compatible formats. Whether you need to deserialize data for processing or manipulation purposes, dataclass_codec can simplify the process and save you time. Give it a try and see how it can enhance your data manipulation workflow.
