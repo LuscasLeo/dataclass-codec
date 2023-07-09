@@ -380,6 +380,28 @@ def generic_list_decoder(obj: Any, _type: ANYTYPE, decode_it: DECODEIT) -> Any:
     return [make_value(i) for i in range(len(obj))]
 
 
+def is_generic_tuple_predicate(_type: ANYTYPE) -> bool:
+    return hasattr(_type, "__origin__") and _type.__origin__ is tuple
+
+
+def generic_tuple_decoder(
+    obj: Any, _type: ANYTYPE, decode_it: DECODEIT
+) -> Any:
+    assert is_generic_tuple_predicate(_type), "{} is not a tuple".format(
+        _type.__name__
+    )
+
+    assert isinstance(obj, tuple), "{} is {} not tuple".format(
+        current_path(), type(obj)
+    )
+
+    def make_value(i: int) -> Any:
+        with current_path_scope(current_path() + f"[{i}]"):
+            return decode_it(obj[i], _type.__args__[0])
+
+    return tuple([make_value(i) for i in range(len(obj))])
+
+
 def is_generic_dict_predicate(_type: ANYTYPE) -> bool:
     return hasattr(_type, "__origin__") and _type.__origin__ is dict
 
@@ -498,6 +520,7 @@ DEFAULT_DECODERS_BY_PREDICATE: List[Tuple[TYPEMATCHPREDICATE, TYPEDECODER]] = [
     (is_generic_list_predicate, generic_list_decoder),
     (is_generic_dict_predicate, generic_dict_decoder),
     (is_union_predicate, generic_union_decoder),
+    (is_generic_tuple_predicate, generic_tuple_decoder),
     # This must be before is_enum_predicate
     (is_new_type_predicate, generic_new_type_decoder),
     (is_enum_predicate, enum_decoder),

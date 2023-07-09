@@ -4,7 +4,16 @@ from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from enum import Enum
 import json
-from typing import Any, Dict, Generic, List, NewType, Optional, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    NewType,
+    Optional,
+    TypeVar,
+    Union,
+)
 
 import pytest
 
@@ -248,8 +257,14 @@ class TestJsonDeserializerCodec:
     def test_encode_list(self) -> None:
         assert encode([1, 2, 3]) == [1, 2, 3]
 
+    def test_decode_list(self) -> None:
+        assert decode([1, 2, 3], List[int]) == [1, 2, 3]
+
     def test_encode_tuple(self) -> None:
         assert encode((1, 2, 3)) == [1, 2, 3]
+
+    # def test_decode_tuple(self) -> None:
+    #     assert decode((1, 2, 3), Tuple[int, int, int]) == (1, 2, 3)
 
     def test_encode_dict(self) -> None:
         assert encode({"a": 1}) == {"a": 1}
