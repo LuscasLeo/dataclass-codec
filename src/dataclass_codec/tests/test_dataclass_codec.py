@@ -755,3 +755,50 @@ class TestJsonDeserializerCodec:
             data=[Dummy(a=1, b="hello", c=1.1)],
             pagination=PaginationData(count=1, current=1),
         )
+
+    def test_generic_without_type(self) -> None:
+        T = TypeVar("T")
+
+        @dataclass
+        class Dummy(Generic[T]):
+            a: T
+
+        with pytest.raises(TypeError):
+            decode({"a": 1}, Dummy)
+
+    def test_generic_with_wrong_type(self) -> None:
+        T = TypeVar("T")
+
+        @dataclass
+        class Dummy(Generic[T]):
+            a: T
+
+        with pytest.raises(TypeError):
+            with decode_context_scope(
+                DecodeContext(
+                    primitive_cast_values=False,
+                    strict=True,
+                )
+            ):
+                decode({"a": 1}, Dummy[str])
+
+    def test_direct_generic(self) -> None:
+        T = TypeVar("T")
+
+        @dataclass
+        class Dummy(Generic[T]):
+            a: T
+
+        @dataclass
+        class Dummy2:
+            dummy: Dummy[int]
+
+        @dataclass
+        class DummyMap(Generic[T]):
+            dummy: Dict[str, Dummy[T]]
+
+        assert decode({"dummy": {"a": 1}}, Dummy2) == Dummy2(dummy=Dummy(a=1))
+
+        assert decode({"dummy": {"a": {"a": 1}}}, DummyMap[int]) == DummyMap(
+            dummy={"a": Dummy(a=1)}
+        )

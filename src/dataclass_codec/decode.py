@@ -223,7 +223,7 @@ def primitive_hook(_type: ANYTYPE) -> TYPEDECODER:
             return _type(obj)
 
         if ctx.strict and _type(obj) != obj:
-            raise TypeError(f"Cannot decode {obj} as {_type}")
+            raise TypeError(f"Cannot decode {obj} ({type(obj)}) as {_type}")
 
         return obj
 
