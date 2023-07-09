@@ -172,6 +172,67 @@ By using the `decode_context_scope` context manager, you can easily control the 
 
 Feel free to include this section in your readme to explain the usage of `DecodeContext` and `decode_context_scope` for managing the decoding behavior within different contexts.
 
+Certainly! Here's an updated version of the section that includes a dataclass with a bytes property:
+
+## Bytes Encoding and Decoding (ID: `bytes-encoding-decoding`)
+
+The `dataclass_codec` library provides built-in support for encoding and decoding byte data, including working with bytes properties within dataclasses. You can easily encode byte data into a string representation and decode it back into its original byte form. This is useful when working with binary data or when serializing and deserializing byte data in your applications.
+
+### Encoding Bytes
+
+To encode byte data, you can use the `encode` function provided by the `dataclass_codec` library. The `encode` function takes a byte object as input and returns its string representation.
+
+Example:
+
+```python
+import base64
+from dataclasses import dataclass
+from dataclass_codec import encode
+
+@dataclass
+class MyData:
+    binary_data: bytes
+
+# Create an instance of the dataclass
+my_data = MyData(binary_data=b"Hello, world!")
+
+# Encode the byte data
+encoded_data = encode(my_data)
+
+# Print the encoded data
+print(encoded_data)  # Output: '{"binary_data": "SGVsbG8sIHdvcmxkIQ=="}'
+```
+
+In this example, we define a dataclass `MyData` with a `binary_data` property of type `bytes`. We create an instance of the dataclass and set the `binary_data` property to `b"Hello, world!"`. We then use the `encode` function to encode the dataclass instance, including the byte data. The resulting encoded data is `{"binary_data": "SGVsbG8sIHdvcmxkIQ=="}`. The byte data is encoded using Base64 encoding within the JSON representation of the dataclass instance.
+
+### Decoding Bytes
+
+To decode byte data back into its original form, you can use the `decode` function provided by the `dataclass_codec` library. The `decode` function takes the encoded data as a string and the target dataclass type and returns the decoded dataclass instance.
+
+Example:
+
+```python
+import base64
+from dataclasses import dataclass
+from dataclass_codec import decode
+
+@dataclass
+class MyData:
+    binary_data: bytes
+
+# Decode the encoded data
+decoded_data = decode({"binary_data": "SGVsbG8sIHdvcmxkIQ=="}, MyData)
+
+# Access the byte data
+print(decoded_data.binary_data)  # Output: b"Hello, world!"
+```
+
+In this example, we define the same `MyData` dataclass with a `binary_data` property of type `bytes`. We use the `decode` function to decode the encoded data `{"binary_data": "SGVsbG8sIHdvcmxkIQ=="}` back into its original dataclass form. The resulting decoded dataclass instance contains the byte data `b"Hello, world!"`.
+
+By leveraging the encoding and decoding capabilities provided by the `dataclass_codec` library, you can seamlessly work with byte data within dataclasses, ensuring efficient serialization and deserialization of binary data.
+
+Feel free to include this section in your readme to explain the process of encoding and decoding byte data, including working with bytes properties within dataclasses using the `dataclass_codec` library.
+
 ## Conclusion
 
 dataclass_codec is a powerful library for decoding dictionaries into dataclasses in Python. It provides an easy and efficient way to convert data between Python objects and JSON-compatible formats. Whether you need to deserialize data for processing or manipulation purposes, dataclass_codec can simplify the process and save you time. Give it a try and see how it can enhance your data manipulation workflow.
