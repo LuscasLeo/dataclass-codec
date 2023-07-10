@@ -817,3 +817,31 @@ class TestJsonDeserializerCodec:
         assert decode({"dummy": {"a": {"a": 1}}}, DummyMap[int]) == DummyMap(
             dummy={"a": Dummy(a=1)}
         )
+
+    def test_decode_literal(self) -> None:
+        from typing import Literal
+
+        @dataclass
+        class Dummy:
+            a: Literal["hello", "world"]
+
+        assert decode({"a": "hello"}, Dummy) == Dummy(a="hello")
+
+    def test_decode_literal_with_invalid_value(self) -> None:
+        from typing import Literal
+
+        @dataclass
+        class Dummy:
+            a: Literal["hello", "world"]
+
+        with pytest.raises(ValueError):
+            decode({"a": "hello2"}, Dummy)
+
+    def test_encode_literal(self) -> None:
+        from typing import Literal
+
+        @dataclass
+        class Dummy:
+            a: Literal["hello", "world"]
+
+        assert encode(Dummy(a="hello")) == {"a": "hello"}

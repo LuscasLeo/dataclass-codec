@@ -14,6 +14,7 @@ from typing import (
     Generator,
     Generic,
     List,
+    Literal,
     Optional,
     Tuple,
     Type,
@@ -492,6 +493,28 @@ def any_type_decoder(obj: Any, _type: ANYTYPE, decode_it: DECODEIT) -> Any:
     return obj
 
 
+def is_literal_predicate(_type: ANYTYPE) -> bool:
+    return hasattr(_type, "__origin__") and _type.__origin__ is Literal
+
+
+def generic_literal_decoder(
+    obj: Any, _type: ANYTYPE, decode_it: DECODEIT
+) -> Any:
+    assert is_literal_predicate(_type), "{} is not a literal".format(
+        _type.__name__
+    )
+
+    obj_type = type(obj)
+    allowed_types = _type.__args__
+
+    if obj in allowed_types:
+        return decode_it(obj, obj_type)
+
+    raise ValueError(
+        f"Cannot decode {obj_type} as some of literal [{allowed_types}]"
+    )
+
+
 DEFAULT_DECODERS: Dict[ANYTYPE, TYPEDECODER] = {
     **{
         t: primitive_hook(t)
@@ -521,6 +544,7 @@ DEFAULT_DECODERS_BY_PREDICATE: List[Tuple[TYPEMATCHPREDICATE, TYPEDECODER]] = [
     (is_generic_dict_predicate, generic_dict_decoder),
     (is_union_predicate, generic_union_decoder),
     (is_generic_tuple_predicate, generic_tuple_decoder),
+    (is_literal_predicate, generic_literal_decoder),
     # This must be before is_enum_predicate
     (is_new_type_predicate, generic_new_type_decoder),
     (is_enum_predicate, enum_decoder),
