@@ -11,6 +11,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    ForwardRef,
     Generator,
     Generic,
     List,
@@ -35,7 +36,7 @@ if TYPE_CHECKING:
     pass
 
 
-ANYTYPE = Type[Any]
+ANYTYPE = Type[Any] | Any
 
 
 TYPEMATCHPREDICATE = Callable[[ANYTYPE], bool]
@@ -46,12 +47,42 @@ TYPEDECODER = Callable[[Any, ANYTYPE, DECODEIT], Any]
 T = TypeVar("T")
 
 
+FORWARD_REF_SCOPES_BY_DATACLASS_TYPE: Dict[Type[Any], Dict[str, Any]] = {}
+
+
+def register_forward_refs_for_dataclass_type(
+    dataclass_type: Type[Any], **forward_refs: Any
+) -> None:
+    FORWARD_REF_SCOPES_BY_DATACLASS_TYPE[dataclass_type] = forward_refs
+
+
+forward_ref_map_cxt_var = ContextVar[Dict[str, Any]](
+    "forward_ref_map_cxt_var", default={}
+)
+
+
+def forward_ref_map() -> Dict[str, Any]:
+    return forward_ref_map_cxt_var.get()
+
+
+@contextmanager
+def forward_ref_map_scope(
+    forward_ref_map: Dict[str, Any],
+) -> Generator[None, Any, None]:
+    token = forward_ref_map_cxt_var.set(forward_ref_map)
+    try:
+        yield
+    finally:
+        forward_ref_map_cxt_var.reset(token)
+
+
 @dataclass
 class DecodeContext:
     strict: bool = False
     primitive_cast_values: bool = True
     dataclass_unset_as_none: bool = True
     collect_errors: bool = False
+    forward_refs: Optional[Dict[str, Any]] = None
 
 
 decode_context_cxt_var = ContextVar(
@@ -137,7 +168,7 @@ def current_types_path() -> TYPES_PATH:
     return types_path_cxt_var.get()
 
 
-def discover_typevar(_type: Type[Any]) -> Any:
+def discover_typevar(_type: TypeVar) -> Any:
     if len(current_types_path()) == 0:
         raise TypeError(f"Cannot decode {_type}")
 
@@ -177,6 +208,39 @@ def discover_typevar(_type: Type[Any]) -> Any:
     return corresponding_type
 
 
+def is_forward_ref_predicate(_type: ANYTYPE) -> bool:
+    return isinstance(_type, ForwardRef)
+    # return hasattr(_type, "__forward_arg__")
+
+
+def forward_ref_decoder(obj: Any, _type: ANYTYPE, decode_it: DECODEIT) -> Any:
+    assert isinstance(_type, ForwardRef), "{} is not a forward ref".format(
+        _type.__name__
+    )
+
+    current_map = forward_ref_map()
+
+    if _type.__forward_arg__ in current_map:
+        real_type = current_map[_type.__forward_arg__]
+        return decode_it(obj, real_type)
+
+    raise TypeError(f"Could not resolve forward ref {_type}")
+
+
+def is_string_forward_ref_predicate(_type: ANYTYPE) -> bool:
+    return isinstance(_type, str)
+
+
+def string_forward_ref_decoder(
+    obj: Any, _type: ANYTYPE, decode_it: DECODEIT
+) -> Any:
+    assert isinstance(_type, str), "{} is not a string forward ref".format(
+        _type.__name__
+    )
+
+    return decode_it(obj, ForwardRef(_type))
+
+
 def raw_decode(
     obj: Any,
     obj_type: Type[T],
@@ -185,8 +249,11 @@ def raw_decode(
 ) -> T:
     def decode_it(obj: Any, _type: ANYTYPE) -> Any:
         if isinstance(_type, TypeVar):
-            _type = discover_typevar(_type)
-        return raw_decode(obj, _type, decoders, decoders_by_predicate)
+            newtype = discover_typevar(_type)
+        else:
+            newtype = _type
+
+        return raw_decode(obj, newtype, decoders, decoders_by_predicate)
 
     if isinstance(obj_type, TypeVar):
         obj_type.__bound__
@@ -304,9 +371,16 @@ def dataclass_from_primitive_dict(
 
             return decode_it(obj[k], _type.__dataclass_fields__[k].type)
 
-    return _type(
-        **{k: make_value(k) for k in _type.__dataclass_fields__.keys()}
-    )
+    with forward_ref_map_scope(
+        {
+            **(decode_context().forward_refs or {}),
+            **forward_ref_map(),
+            **FORWARD_REF_SCOPES_BY_DATACLASS_TYPE.get(_type, {}),
+        }
+    ):
+        return _type(
+            **{k: make_value(k) for k in _type.__dataclass_fields__.keys()}
+        )
 
 
 def generic_dataclass_from_primitive_dict(
@@ -339,12 +413,19 @@ def generic_dataclass_from_primitive_dict(
                 t = _type.__args__[index]
             return decode_it(obj[k], t)
 
-    return _type(
-        **{
-            k: make_value(k, t.type)
-            for k, t in _type.__origin__.__dataclass_fields__.items()
+    with forward_ref_map_scope(
+        {
+            **(decode_context().forward_refs or {}),
+            **forward_ref_map(),
+            **FORWARD_REF_SCOPES_BY_DATACLASS_TYPE.get(_type, {}),
         }
-    )
+    ):
+        return _type(
+            **{
+                k: make_value(k, t.type)
+                for k, t in _type.__origin__.__dataclass_fields__.items()
+            }
+        )
 
 
 def decimal_from_str(obj: Any, _type: ANYTYPE, _decode_it: DECODEIT) -> Any:
@@ -545,6 +626,8 @@ DEFAULT_DECODERS_BY_PREDICATE: List[Tuple[TYPEMATCHPREDICATE, TYPEDECODER]] = [
     (is_union_predicate, generic_union_decoder),
     (is_generic_tuple_predicate, generic_tuple_decoder),
     (is_literal_predicate, generic_literal_decoder),
+    (is_forward_ref_predicate, forward_ref_decoder),
+    (is_string_forward_ref_predicate, string_forward_ref_decoder),
     # This must be before is_enum_predicate
     (is_new_type_predicate, generic_new_type_decoder),
     (is_enum_predicate, enum_decoder),

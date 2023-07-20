@@ -4,6 +4,7 @@ from .decode import (
     DecodeContext,
     decode_context_scope,
     error_list_scope,
+    register_forward_refs_for_dataclass_type,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "DecodeContext",
     "decode_context_scope",
     "error_list_scope",
+    "register_forward_refs_for_dataclass_type",
 ]

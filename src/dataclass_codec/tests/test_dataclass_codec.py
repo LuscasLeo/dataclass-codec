@@ -23,6 +23,7 @@ from dataclass_codec import (
     decode_context_scope,
     DecodeContext,
     error_list_scope,
+    register_forward_refs_for_dataclass_type,
 )
 
 
@@ -845,3 +846,36 @@ class TestJsonDeserializerCodec:
             a: Literal["hello", "world"]
 
         assert encode(Dummy(a="hello")) == {"a": "hello"}
+
+    def test_decode_forward_reference(self) -> None:
+        pass
+
+        @dataclass
+        class Dummy:
+            a: "Dummy2"
+
+        @dataclass
+        class Dummy2:
+            b: int
+
+        register_forward_refs_for_dataclass_type(Dummy, **locals())
+
+        assert decode({"a": {"b": 1}}, Dummy) == Dummy(Dummy2(1))
+
+    def test_decode_forward_reference_list(self) -> None:
+        @dataclass
+        class Dummy:
+            a: List["ADummy2"]
+
+        @dataclass
+        class ADummy2:
+            b: int
+
+        with decode_context_scope(
+            decode_context=DecodeContext(
+                forward_refs={
+                    "ADummy2": ADummy2,
+                }
+            )
+        ):
+            assert decode({"a": [{"b": 1}]}, Dummy) == Dummy([ADummy2(1)])
