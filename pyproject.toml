@@ -29,3 +29,8 @@ strict = true
 
 [tool.black]
 line-length = 79
+
+[[tool.mypy.overrides]]
+module = "dataclass_codec.tests.test_python3_9"
+ignore_errors = true
+python_version = "3.9"

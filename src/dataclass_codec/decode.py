@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     pass
 
 
-ANYTYPE = Type[Any] | Any
+ANYTYPE = Union[Type[Any], Any]
 
 
 TYPEMATCHPREDICATE = Callable[[ANYTYPE], bool]
