@@ -6,8 +6,8 @@ from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
 from operator import indexOf
+import sys
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -31,10 +31,20 @@ from dataclass_codec.types_predicates import (
     is_enum_predicate,
     is_generic_dataclass_predicate,
 )
+import types
 
-if TYPE_CHECKING:
-    pass
+T = TypeVar("T")
 
+if sys.version_info >= (3, 10):
+    INPUT_TYPE = Union[
+        Type[T]
+        | types.GenericAlias
+        | types.EllipsisType
+        | types.NotImplementedType,
+        types.UnionType,
+    ]
+else:
+    INPUT_TYPE = Type[T]
 
 ANYTYPE = Union[Type[Any], Any]
 
@@ -42,9 +52,6 @@ ANYTYPE = Union[Type[Any], Any]
 TYPEMATCHPREDICATE = Callable[[ANYTYPE], bool]
 DECODEIT = Callable[[Any, ANYTYPE], Any]
 TYPEDECODER = Callable[[Any, ANYTYPE, DECODEIT], Any]
-
-
-T = TypeVar("T")
 
 
 FORWARD_REF_SCOPES_BY_DATACLASS_TYPE: Dict[Type[Any], Dict[str, Any]] = {}
@@ -148,7 +155,7 @@ def current_path_scope(path: str) -> Generator[None, Any, None]:
         current_path_cxt_var.reset(token)
 
 
-TYPES_PATH = Tuple[Type[Any], ...]
+TYPES_PATH = Tuple[INPUT_TYPE[Any], ...]
 
 types_path_cxt_var = ContextVar[TYPES_PATH]("types_path_cxt_var", default=())
 
@@ -168,13 +175,38 @@ def current_types_path() -> TYPES_PATH:
     return types_path_cxt_var.get()
 
 
+def get_origin(_type: Any) -> Any:
+    if sys.version_info >= (3, 10):
+        return _type.__class__
+    else:
+        return _type.__origin__
+
+
+def get_origin_bases(_type: Any) -> Any:
+    if sys.version_info >= (3, 10):
+        return (
+            _type.__orig_bases__
+            if hasattr(_type, "__orig_bases__")
+            else _type.__bases__
+        )
+    else:
+        return _type.__orig_bases__
+
+
+def get_type_args(_type: Any) -> Any:
+    if sys.version_info >= (3, 10):
+        return _type.__args__
+    else:
+        return _type.__args__
+
+
 def discover_typevar(_type: TypeVar) -> Any:
     if len(current_types_path()) == 0:
         raise TypeError(f"Cannot decode {_type}")
 
     typevar_context = [*current_types_path()][::-1]
 
-    types_path: Tuple[Type[Any], ...] = ()
+    types_path: Tuple[INPUT_TYPE[Any], ...] = ()
     index = -1
     for t in typevar_context:
         base_t = t
@@ -198,13 +230,13 @@ def discover_typevar(_type: TypeVar) -> Any:
                             if index != -1:
                                 break
 
-                base_t = base_t.__origin__
+                base_t = get_origin(base_t)
             else:
-                base_t = base_t.__orig_bases__[0]
+                base_t = get_origin_bases(base_t)[0]
 
     if index == -1:
         raise TypeError(f"Typevar {_type} not found in {types_path}")
-    corresponding_type = base_t.__args__[index]
+    corresponding_type = get_type_args(base_t)[index]
     return corresponding_type
 
 
@@ -243,7 +275,7 @@ def string_forward_ref_decoder(
 
 def raw_decode(
     obj: Any,
-    obj_type: Type[T],
+    obj_type: INPUT_TYPE[T],
     decoders: Dict[ANYTYPE, TYPEDECODER],
     decoders_by_predicate: List[Tuple[TYPEMATCHPREDICATE, TYPEDECODER]],
 ) -> T:
@@ -395,7 +427,7 @@ def generic_dataclass_from_primitive_dict(
         current_path(), type(obj)
     )
 
-    def make_value(k: str, t: Type[Any]) -> Any:
+    def make_value(k: str, t: INPUT_TYPE[Any]) -> Any:
         with current_path_scope(current_path() + "." + k):
             if k not in obj:
                 if cxt.dataclass_unset_as_none:
@@ -504,7 +536,11 @@ def generic_dict_decoder(obj: Any, _type: ANYTYPE, decode_it: DECODEIT) -> Any:
 
 
 def is_union_predicate(_type: ANYTYPE) -> bool:
-    return hasattr(_type, "__origin__") and _type.__origin__ is Union
+    return (hasattr(_type, "__origin__") and _type.__origin__ is Union) or (
+        sys.version_info >= (3, 10)
+        and hasattr(_type, "__class__")
+        and _type.__class__ is types.UnionType
+    )
 
 
 def generic_union_decoder(
@@ -636,7 +672,7 @@ DEFAULT_DECODERS_BY_PREDICATE: List[Tuple[TYPEMATCHPREDICATE, TYPEDECODER]] = [
 ]
 
 
-TYPEVAR_MAP = Dict[TypeVar, Type[Any]]
+TYPEVAR_MAP = Dict[TypeVar, INPUT_TYPE[Any]]
 
 typevar_context_cxt_var = ContextVar[TYPEVAR_MAP](
     "typevar_context_cxt_var", default={}
@@ -654,7 +690,7 @@ def typevar_context_scope(
         typevar_context_cxt_var.reset(token)
 
 
-def get_root_generic_type(_type: Type[Any]) -> Optional[Type[Any]]:
+def get_root_generic_type(_type: INPUT_TYPE[Any]) -> Optional[INPUT_TYPE[Any]]:
     if hasattr(_type, "__origin__"):
         if _type.__origin__ is Generic:
             return _type
@@ -672,7 +708,7 @@ def get_root_generic_type(_type: Type[Any]) -> Optional[Type[Any]]:
         return None
 
 
-def decode(obj: Any, _type: Type[T]) -> T:
+def decode(obj: Any, _type: INPUT_TYPE[T]) -> T:
     if _type is None:
         _type = type(obj)
 
