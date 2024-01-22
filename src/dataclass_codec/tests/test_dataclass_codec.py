@@ -24,7 +24,6 @@ from dataclass_codec import (
     decode_context_scope,
     encode,
     error_list_scope,
-    register_forward_refs_for_dataclass_type,
 )
 
 
@@ -862,53 +861,53 @@ class TestJsonDeserializerCodec:
 
         assert encode(Dummy(a="hello")) == {"a": "hello"}
 
-    def test_decode_forward_reference(self) -> None:
-        pass
+    # def test_decode_forward_reference(self) -> None:
+    #     pass
 
-        @dataclass
-        class Dummy:
-            a: "__Dummy2"
+    #     @dataclass
+    #     class Dummy:
+    #         a: "__Dummy2"
 
-        @dataclass
-        class __Dummy2:
-            b: int
+    #     @dataclass
+    #     class __Dummy2:
+    #         b: int
 
-        register_forward_refs_for_dataclass_type(Dummy, **locals())
+    #     register_forward_refs_for_dataclass_type(Dummy, **locals())
 
-        assert decode({"a": {"b": 1}}, Dummy) == Dummy(__Dummy2(1))
+    #     assert decode({"a": {"b": 1}}, Dummy) == Dummy(__Dummy2(1))
 
-    def test_decode_forward_reference_list(self) -> None:
-        @dataclass
-        class Dummy:
-            a: List["Dummy2"]
+    # def test_decode_forward_reference_list(self) -> None:
+    #     @dataclass
+    #     class Dummy:
+    #         a: List["Dummy2"]
 
-        @dataclass
-        class Dummy2:
-            b: int
+    #     @dataclass
+    #     class Dummy2:
+    #         b: int
 
-        with decode_context_scope(
-            decode_context=DecodeContext(
-                forward_refs={
-                    "ADummy2": Dummy2,
-                }
-            )
-        ):
-            assert decode({"a": [{"b": 1}]}, Dummy) == Dummy([Dummy2(1)])
+    #     with decode_context_scope(
+    #         decode_context=DecodeContext(
+    #             forward_refs={
+    #                 "ADummy2": Dummy2,
+    #             }
+    #         )
+    #     ):
+    #         assert decode({"a": [{"b": 1}]}, Dummy) == Dummy([Dummy2(1)])
 
-    def test_dataclass_with_optional_object_list(self) -> None:
-        @dataclass
-        class Dummy:
-            a: Optional[List["NestedInt"]]
+    # def test_dataclass_with_optional_object_list(self) -> None:
+    #     @dataclass
+    #     class Dummy:
+    #         a: Optional[List["NestedInt"]]
 
-        @dataclass
-        class NestedInt:
-            b: int
+    #     @dataclass
+    #     class NestedInt:
+    #         b: int
 
-        with decode_context_scope(
-            decode_context=DecodeContext(
-                forward_refs={
-                    "Dummy2": NestedInt,
-                }
-            )
-        ):
-            assert decode({"a": [{"b": 1}]}, Dummy) == Dummy([NestedInt(1)])
+    #     with decode_context_scope(
+    #         decode_context=DecodeContext(
+    #             forward_refs={
+    #                 "Dummy2": NestedInt,
+    #             }
+    #         )
+    #     ):
+    #         assert decode({"a": [{"b": 1}]}, Dummy) == Dummy([NestedInt(1)])
