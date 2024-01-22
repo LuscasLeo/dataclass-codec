@@ -18,7 +18,9 @@ Here is an example of how to use dataclass_codec with dataclasses:
 
 ```python
 from dataclasses import dataclass
+
 from dataclass_codec import decode
+
 
 # Define a dataclass
 @dataclass
@@ -53,7 +55,9 @@ You can use dataclass_codec to decode dictionaries that have nested dictionaries
 
 ```python
 from dataclasses import dataclass
+
 from dataclass_codec import decode
+
 
 # Define a nested dataclass
 @dataclass
@@ -99,8 +103,9 @@ Remember to define all your dataclasses using the `@dataclass` decorator for dat
 
 ```python
 from dataclasses import dataclass
-from dataclass_codec import decode
 from typing import List, TypeVar
+
+from dataclass_codec import decode
 
 # Define a TypeVar
 T = TypeVar('T')
