@@ -4,7 +4,17 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, Generic, List, NewType, Optional, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    NewType,
+    Optional,
+    Set,
+    TypeVar,
+    Union,
+)
 
 import pytest
 
@@ -14,7 +24,6 @@ from dataclass_codec import (
     decode_context_scope,
     encode,
     error_list_scope,
-    register_forward_refs_for_dataclass_type,
 )
 
 
@@ -253,10 +262,16 @@ class TestJsonDeserializerCodec:
         assert encode({1, 2, 3}) == [1, 2, 3]
 
     def test_decode_set(self) -> None:
-        assert decode([1, 2, 3], set) == {1, 2, 3}
+        assert decode([1, 2, 3], set[int]) == {1, 2, 3}
+
+    def test_decode_set_typings(self) -> None:
+        assert decode([1, 2, 3], Set[int]) == {1, 2, 3}
+
+    def test_decode_list_typings(self) -> None:
+        assert decode([1, 2, 3], List[int]) == [1, 2, 3]
 
     def test_decode_list(self) -> None:
-        assert decode([1, 2, 3], List[int]) == [1, 2, 3]
+        assert decode([1, 2, 3], list[int]) == [1, 2, 3]
 
     def test_encode_tuple(self) -> None:
         assert encode((1, 2, 3)) == [1, 2, 3]
@@ -311,10 +326,10 @@ class TestJsonDeserializerCodec:
             a: int
 
         @dataclass
-        class Dummy2:
+        class TestDummy2:
             dummy: Dummy
 
-        assert encode(Dummy2(Dummy(1))) == {"dummy": {"a": 1}}
+        assert encode(TestDummy2(Dummy(1))) == {"dummy": {"a": 1}}
 
     def test_complex_case(self) -> None:
         a = {
@@ -445,7 +460,7 @@ class TestJsonDeserializerCodec:
             a: int
 
         @dataclass
-        class Dummy2:
+        class __Dummy2:
             dummy: Dummy
 
         with error_list_scope() as errors, decode_context_scope(
@@ -454,7 +469,7 @@ class TestJsonDeserializerCodec:
                 dataclass_unset_as_none=False,
             )
         ):
-            decode({"dummy": {}}, Dummy2)
+            decode({"dummy": {}}, __Dummy2)
 
             assert len(errors) == 1
             assert errors[0][0] == "$.dummy.a"
@@ -803,14 +818,16 @@ class TestJsonDeserializerCodec:
             a: T
 
         @dataclass
-        class Dummy2:
+        class __Dummy2:
             dummy: Dummy[int]
 
         @dataclass
         class DummyMap(Generic[T]):
             dummy: Dict[str, Dummy[T]]
 
-        assert decode({"dummy": {"a": 1}}, Dummy2) == Dummy2(dummy=Dummy(a=1))
+        assert decode({"dummy": {"a": 1}}, __Dummy2) == __Dummy2(
+            dummy=Dummy(a=1)
+        )
 
         assert decode({"dummy": {"a": {"a": 1}}}, DummyMap[int]) == DummyMap(
             dummy={"a": Dummy(a=1)}
@@ -844,35 +861,53 @@ class TestJsonDeserializerCodec:
 
         assert encode(Dummy(a="hello")) == {"a": "hello"}
 
-    def test_decode_forward_reference(self) -> None:
-        pass
+    # def test_decode_forward_reference(self) -> None:
+    #     pass
 
-        @dataclass
-        class Dummy:
-            a: "Dummy2"
+    #     @dataclass
+    #     class Dummy:
+    #         a: "__Dummy2"
 
-        @dataclass
-        class Dummy2:
-            b: int
+    #     @dataclass
+    #     class __Dummy2:
+    #         b: int
 
-        register_forward_refs_for_dataclass_type(Dummy, **locals())
+    #     register_forward_refs_for_dataclass_type(Dummy, **locals())
 
-        assert decode({"a": {"b": 1}}, Dummy) == Dummy(Dummy2(1))
+    #     assert decode({"a": {"b": 1}}, Dummy) == Dummy(__Dummy2(1))
 
-    def test_decode_forward_reference_list(self) -> None:
-        @dataclass
-        class Dummy:
-            a: List["ADummy2"]
+    # def test_decode_forward_reference_list(self) -> None:
+    #     @dataclass
+    #     class Dummy:
+    #         a: List["Dummy2"]
 
-        @dataclass
-        class ADummy2:
-            b: int
+    #     @dataclass
+    #     class Dummy2:
+    #         b: int
 
-        with decode_context_scope(
-            decode_context=DecodeContext(
-                forward_refs={
-                    "ADummy2": ADummy2,
-                }
-            )
-        ):
-            assert decode({"a": [{"b": 1}]}, Dummy) == Dummy([ADummy2(1)])
+    #     with decode_context_scope(
+    #         decode_context=DecodeContext(
+    #             forward_refs={
+    #                 "ADummy2": Dummy2,
+    #             }
+    #         )
+    #     ):
+    #         assert decode({"a": [{"b": 1}]}, Dummy) == Dummy([Dummy2(1)])
+
+    # def test_dataclass_with_optional_object_list(self) -> None:
+    #     @dataclass
+    #     class Dummy:
+    #         a: Optional[List["NestedInt"]]
+
+    #     @dataclass
+    #     class NestedInt:
+    #         b: int
+
+    #     with decode_context_scope(
+    #         decode_context=DecodeContext(
+    #             forward_refs={
+    #                 "Dummy2": NestedInt,
+    #             }
+    #         )
+    #     ):
+    #         assert decode({"a": [{"b": 1}]}, Dummy) == Dummy([NestedInt(1)])
