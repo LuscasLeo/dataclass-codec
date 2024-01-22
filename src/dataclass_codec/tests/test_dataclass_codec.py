@@ -1,27 +1,18 @@
 import base64
+import json
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from enum import Enum
-import json
-from typing import (
-    Any,
-    Dict,
-    Generic,
-    List,
-    NewType,
-    Optional,
-    TypeVar,
-    Union,
-)
+from typing import Any, Dict, Generic, List, NewType, Optional, TypeVar, Union
 
 import pytest
 
 from dataclass_codec import (
-    encode,
+    DecodeContext,
     decode,
     decode_context_scope,
-    DecodeContext,
+    encode,
     error_list_scope,
     register_forward_refs_for_dataclass_type,
 )

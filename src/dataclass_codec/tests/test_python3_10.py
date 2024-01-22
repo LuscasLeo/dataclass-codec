@@ -1,6 +1,6 @@
-import pytest
 import sys
 
+import pytest
 
 from dataclass_codec import decode, encode
 

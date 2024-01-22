@@ -2,15 +2,13 @@ import base64
 from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Callable, Dict, Type, Tuple, List
-
+from typing import Any, Callable, Dict, List, Tuple, Type
 from uuid import UUID
 
 from dataclass_codec.types_predicates import (
     is_dataclass_predicate,
     is_enum_predicate,
 )
-
 
 TYPEMATCHPREDICATE = Callable[[Type[Any]], bool]
 
