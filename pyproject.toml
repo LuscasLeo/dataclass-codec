@@ -4,10 +4,11 @@ version = "0.5.7"
 description = ""
 authors = ["lucas.silva <lucas.silva@jeaholding.com.br>"]
 readme = "README.md"
-packages = [{include = "dataclass_codec", from = "src"}]
+packages = [{ include = "dataclass_codec", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.8"
+isort = "^5.13.2"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -33,4 +34,7 @@ line-length = 79
 [[tool.mypy.overrides]]
 module = "dataclass_codec.tests.test_python3_9"
 ignore_errors = true
-python_version = "3.9"
+
+
+[tool.isort]
+profile = "black"
