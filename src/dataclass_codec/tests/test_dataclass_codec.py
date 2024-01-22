@@ -4,7 +4,17 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, Generic, List, NewType, Optional, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    NewType,
+    Optional,
+    Set,
+    TypeVar,
+    Union,
+)
 
 import pytest
 
@@ -253,10 +263,16 @@ class TestJsonDeserializerCodec:
         assert encode({1, 2, 3}) == [1, 2, 3]
 
     def test_decode_set(self) -> None:
-        assert decode([1, 2, 3], set) == {1, 2, 3}
+        assert decode([1, 2, 3], set[int]) == {1, 2, 3}
+
+    def test_decode_set_typings(self) -> None:
+        assert decode([1, 2, 3], Set[int]) == {1, 2, 3}
+
+    def test_decode_list_typings(self) -> None:
+        assert decode([1, 2, 3], List[int]) == [1, 2, 3]
 
     def test_decode_list(self) -> None:
-        assert decode([1, 2, 3], List[int]) == [1, 2, 3]
+        assert decode([1, 2, 3], list[int]) == [1, 2, 3]
 
     def test_encode_tuple(self) -> None:
         assert encode((1, 2, 3)) == [1, 2, 3]

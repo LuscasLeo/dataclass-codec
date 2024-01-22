@@ -475,6 +475,26 @@ def uuid_from_str(obj: Any, _type: ANYTYPE, _decode_it: DECODEIT) -> Any:
     return UUID(obj)
 
 
+def is_generic_set_predicate(_type: ANYTYPE) -> bool:
+    return hasattr(_type, "__origin__") and _type.__origin__ is set
+
+
+def generic_set_decoder(obj: Any, _type: ANYTYPE, decode_it: DECODEIT) -> Any:
+    assert is_generic_set_predicate(_type), "{} is not a set".format(
+        _type.__name__
+    )
+
+    assert isinstance(obj, list), "{} is {} not list".format(
+        current_path(), type(obj)
+    )
+
+    def make_value(i: int) -> Any:
+        with current_path_scope(current_path() + f"[{i}]"):
+            return decode_it(obj[i], _type.__args__[0])
+
+    return set([make_value(i) for i in range(len(obj))])
+
+
 def is_generic_list_predicate(_type: ANYTYPE) -> bool:
     return hasattr(_type, "__origin__") and _type.__origin__ is list
 
@@ -660,6 +680,7 @@ DEFAULT_DECODERS_BY_PREDICATE: List[Tuple[TYPEMATCHPREDICATE, TYPEDECODER]] = [
     (is_any_type_predicate, any_type_decoder),
     (is_dataclass_predicate, dataclass_from_primitive_dict),
     (is_generic_dataclass_predicate, generic_dataclass_from_primitive_dict),
+    (is_generic_set_predicate, generic_set_decoder),
     (is_generic_list_predicate, generic_list_decoder),
     (is_generic_dict_predicate, generic_dict_decoder),
     (is_union_predicate, generic_union_decoder),
