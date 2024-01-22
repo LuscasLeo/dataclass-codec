@@ -249,6 +249,12 @@ class TestJsonDeserializerCodec:
     def test_encode_list(self) -> None:
         assert encode([1, 2, 3]) == [1, 2, 3]
 
+    def test_encode_set(self) -> None:
+        assert encode({1, 2, 3}) == [1, 2, 3]
+
+    def test_decode_set(self) -> None:
+        assert decode([1, 2, 3], set) == {1, 2, 3}
+
     def test_decode_list(self) -> None:
         assert decode([1, 2, 3], List[int]) == [1, 2, 3]
 

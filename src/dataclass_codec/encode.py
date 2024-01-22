@@ -47,6 +47,10 @@ def list_hook(obj: Any, encode_it: ENCODEIT) -> Any:
     return [encode_it(i) for i in obj]
 
 
+def set_hook(obj: Any, encode_it: ENCODEIT) -> Any:
+    return [encode_it(i) for i in obj]
+
+
 def dict_hook(obj: Any, encode_it: ENCODEIT) -> Any:
     return {k: encode_it(v) for k, v in obj.items()}
 
@@ -95,6 +99,7 @@ def encode(obj: Any) -> Any:
             **{t: primitive_hook(t) for t in [bool, int, float, str]},
             type(None): lambda obj, _: None,
             list: list_hook,
+            set: set_hook,
             tuple: list_hook,
             dict: dict_hook,
             bytes: bytes_to_base64,

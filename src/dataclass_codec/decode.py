@@ -317,6 +317,7 @@ def primitive_hook(_type: ANYTYPE) -> TYPEDECODER:
                 date,
                 datetime,
                 time,
+                set,
             )
 
         if ctx.primitive_cast_values and type_can_cast(_type):
@@ -640,9 +641,11 @@ DEFAULT_DECODERS: Dict[ANYTYPE, TYPEDECODER] = {
             float,
             str,
             bool,
+            set,
             type(None),
         )
     },
+    list: list_hook,
     list: list_hook,
     dict: dict_hook,
     bytes: base64_to_bytes,
