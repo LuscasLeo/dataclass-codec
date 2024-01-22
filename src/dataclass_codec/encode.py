@@ -2,15 +2,13 @@ import base64
 from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Callable, Dict, Type, Tuple, List
-
+from typing import Any, Callable, Dict, List, Tuple, Type
 from uuid import UUID
 
 from dataclass_codec.types_predicates import (
     is_dataclass_predicate,
     is_enum_predicate,
 )
-
 
 TYPEMATCHPREDICATE = Callable[[Type[Any]], bool]
 
@@ -46,6 +44,10 @@ def primitive_hook(_type: Type[Any]) -> TYPEENCODER:
 
 
 def list_hook(obj: Any, encode_it: ENCODEIT) -> Any:
+    return [encode_it(i) for i in obj]
+
+
+def set_hook(obj: Any, encode_it: ENCODEIT) -> Any:
     return [encode_it(i) for i in obj]
 
 
@@ -97,6 +99,7 @@ def encode(obj: Any) -> Any:
             **{t: primitive_hook(t) for t in [bool, int, float, str]},
             type(None): lambda obj, _: None,
             list: list_hook,
+            set: set_hook,
             tuple: list_hook,
             dict: dict_hook,
             bytes: bytes_to_base64,

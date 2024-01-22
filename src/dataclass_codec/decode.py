@@ -1,4 +1,6 @@
 import base64
+import sys
+import types
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import MISSING, Field, dataclass
@@ -6,7 +8,6 @@ from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
 from operator import indexOf
-import sys
 from typing import (
     Any,
     Callable,
@@ -31,7 +32,6 @@ from dataclass_codec.types_predicates import (
     is_enum_predicate,
     is_generic_dataclass_predicate,
 )
-import types
 
 T = TypeVar("T")
 
@@ -317,6 +317,7 @@ def primitive_hook(_type: ANYTYPE) -> TYPEDECODER:
                 date,
                 datetime,
                 time,
+                set,
             )
 
         if ctx.primitive_cast_values and type_can_cast(_type):
@@ -640,9 +641,11 @@ DEFAULT_DECODERS: Dict[ANYTYPE, TYPEDECODER] = {
             float,
             str,
             bool,
+            set,
             type(None),
         )
     },
+    list: list_hook,
     list: list_hook,
     dict: dict_hook,
     bytes: base64_to_bytes,
